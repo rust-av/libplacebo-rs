@@ -5,3 +5,7 @@ authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 edition = "2018"
 
 [dependencies]
+libplacebo-sys = { path="libplacebo-sys" }
+
+[workspace]
+members = ["libplacebo-sys"]
