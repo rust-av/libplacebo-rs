@@ -1,0 +1,14 @@
+[package]
+name = "libplacebo-sys"
+version = "0.1.0"
+authors = ["Luca Barbato <lu_zero@gentoo.org>"]
+description = "FFI bindings to libplacebo"
+repository = "https://github.com/rust-av/libplacebo-rs"
+edition = "2018"
+
+[build-dependencies]
+bindgen = "0.49"
+metadeps = "1.1"
+
+[package.metadata.pkg-config]
+libplacebo = "1.20"

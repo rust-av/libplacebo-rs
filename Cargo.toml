@@ -1,0 +1,7 @@
+[package]
+name = "libplacebo-rs"
+version = "0.1.0"
+authors = ["Luca Barbato <lu_zero@gentoo.org>"]
+edition = "2018"
+
+[dependencies]
