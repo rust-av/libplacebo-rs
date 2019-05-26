@@ -5,6 +5,7 @@ authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 description = "FFI bindings to libplacebo"
 repository = "https://github.com/rust-av/libplacebo-rs"
 edition = "2018"
+license = "MIT"
 
 [build-dependencies]
 bindgen = "0.49"
