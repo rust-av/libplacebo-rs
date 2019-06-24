@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 libplacebo-sys = { path="libplacebo-sys" }
+paste = "0.1"
 
 [workspace]
 members = ["libplacebo-sys"]
