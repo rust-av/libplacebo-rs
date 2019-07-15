@@ -3,6 +3,7 @@ extern crate sdl2;
 extern crate structopt;
 
 use libplacebo_sys::*;
+
 use sdl2::event::Event;
 use sdl2::image::ImageRWops;
 use sdl2::keyboard::Keycode;
@@ -58,7 +59,6 @@ struct Placebo {
     osd_plane: pl_plane,
     renderer: *mut pl_renderer,
     icc_profile: Vec<u8>,
-    surf: VkSurfaceKHR,
 }
 
 fn init_placebo(pl: &mut Placebo) {
@@ -92,17 +92,16 @@ fn init_vulkan(window: &mut Window, pl: &mut Placebo) {
         }
     }
 
-    let vk_inst = unsafe { pl_vk_inst_create(pl.ctx, &vk_inst_params as *const pl_vk_inst_params) };
+    let vk_inst = unsafe { pl_vk_inst_create(pl.ctx, &vk_inst_params) };
     assert!(!vk_inst.is_null());
     pl.vk_inst = vk_inst;
 
     let inst = unsafe { (*pl.vk_inst).instance as usize };
     let surface_handle = window.vulkan_create_surface(inst).unwrap();
-    pl.surf = surface_handle as VkSurfaceKHR;
 
     let mut vk_params = unsafe { pl_vulkan_default_params };
     vk_params.instance = unsafe { (*pl.vk_inst).instance };
-    vk_params.surface = pl.surf;
+    vk_params.surface = surface_handle as VkSurfaceKHR;
     vk_params.allow_software = true;
 
     let vk = unsafe { pl_vulkan_create(pl.ctx, &vk_params) };
@@ -110,7 +109,7 @@ fn init_vulkan(window: &mut Window, pl: &mut Placebo) {
     pl.vk = vk;
 
     let swapchain_params = pl_vulkan_swapchain_params {
-        surface: pl.surf,
+        surface: surface_handle as VkSurfaceKHR,
         present_mode: VkPresentModeKHR::VK_PRESENT_MODE_IMMEDIATE_KHR,
         surface_format: VkSurfaceFormatKHR {
             format: VkFormat::VK_FORMAT_UNDEFINED,
@@ -119,7 +118,8 @@ fn init_vulkan(window: &mut Window, pl: &mut Placebo) {
         swapchain_depth: 3,
     };
 
-    let swapchain = unsafe { pl_vulkan_create_swapchain(pl.vk, &swapchain_params) };
+    let swapchain =
+        unsafe { pl_vulkan_create_swapchain(pl.vk, &swapchain_params) };
     assert!(!swapchain.is_null());
 
     pl.swapchain = swapchain;
@@ -127,7 +127,7 @@ fn init_vulkan(window: &mut Window, pl: &mut Placebo) {
     let mut w = WINDOW_WIDTH as i32;
     let mut h = WINDOW_HEIGHT as i32;
 
-    let ok = unsafe { pl_swapchain_resize(pl.swapchain, &mut w as *mut i32, &mut h as *mut i32) };
+    let ok = unsafe { pl_swapchain_resize(pl.swapchain, &mut w, &mut h) };
     if !ok {
         eprintln!("Failed resizing vulkan swapchain!");
         process::exit(2);
@@ -138,7 +138,11 @@ fn init_vulkan(window: &mut Window, pl: &mut Placebo) {
     }
 }
 
-fn upload_plane(path: &PathBuf, pl: &mut Placebo, is_image: bool) -> std::io::Result<()> {
+fn upload_plane(
+    path: &PathBuf,
+    pl: &mut Placebo,
+    is_image: bool,
+) -> std::io::Result<()> {
     let mut f = File::open(path)?;
     let mut buf = Vec::new();
     f.read_to_end(&mut buf)?;
@@ -184,24 +188,24 @@ fn upload_plane(path: &PathBuf, pl: &mut Placebo, is_image: bool) -> std::io::Re
         mask.bmask as u64,
         mask.amask as u64,
     ];
-    unsafe { pl_plane_data_from_mask(&mut plane_data as *mut pl_plane_data, masks.as_mut_ptr()) }
+    unsafe { pl_plane_data_from_mask(&mut plane_data, masks.as_mut_ptr()) }
 
     let vk_gpu = unsafe { (*pl.vk).gpu };
     let ok = match is_image {
         true => unsafe {
             pl_upload_plane(
                 vk_gpu,
-                &mut pl.img_plane as *mut pl_plane,
+                &mut pl.img_plane,
                 &mut pl.img_tex,
-                &plane_data as *const pl_plane_data,
+                &plane_data,
             )
         },
         false => unsafe {
             pl_upload_plane(
                 vk_gpu,
-                &mut pl.osd_plane as *mut pl_plane,
+                &mut pl.osd_plane,
                 &mut pl.osd_tex,
-                &plane_data as *const pl_plane_data,
+                &plane_data,
             )
         },
     };
@@ -266,7 +270,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
     image.repr.alpha = pl_alpha_mode::PL_ALPHA_INDEPENDENT;
 
     let mut render_params = unsafe { pl_render_default_params };
-    render_params.upscaler = unsafe { &pl_filter_ewa_lanczos as *const pl_filter_config };
+    render_params.upscaler = unsafe { &pl_filter_ewa_lanczos };
 
     let mut target = pl_render_target {
         fbo: 0 as *const pl_tex,
@@ -284,7 +288,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
     };
 
     unsafe {
-        pl_render_target_from_swapchain(&mut target as *mut pl_render_target, frame);
+        pl_render_target_from_swapchain(&mut target, frame);
     }
 
     if pl.icc_profile.len() != 0 {
@@ -317,7 +321,9 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
         target.num_overlays = 1;
     }
 
-    let ok = unsafe { pl_render_image(pl.renderer, &image, &target, &render_params) };
+    let ok = unsafe {
+        pl_render_image(pl.renderer, &image, &target, &render_params)
+    };
     if !ok {
         eprintln!("Failed rendering frame!");
         process::exit(2);
@@ -355,7 +361,6 @@ fn main() {
         img_plane: img_plane,
         osd_plane: osd_plane,
         icc_profile: Vec::new(),
-        surf: 0 as VkSurfaceKHR,
     };
 
     let sdl_context = sdl2::init().unwrap();
@@ -406,9 +411,7 @@ fn main() {
             color_space: color_space,
         };
 
-        let ok = unsafe {
-            pl_swapchain_start_frame(pl.swapchain, &mut frame as *mut pl_swapchain_frame)
-        };
+        let ok = unsafe { pl_swapchain_start_frame(pl.swapchain, &mut frame) };
         if !ok {
             sleep(Duration::from_millis(10));
             continue;
