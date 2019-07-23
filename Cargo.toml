@@ -8,5 +8,13 @@ edition = "2018"
 libplacebo-sys = { path="libplacebo-sys" }
 paste = "0.1"
 
+[dev-dependencies]
+structopt = "0.2"
+
+[dev-dependencies.sdl2]
+version = "0.32.2"
+default-features = false
+features = ["image"]
+
 [workspace]
 members = ["libplacebo-sys"]
