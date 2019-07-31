@@ -61,10 +61,15 @@ default_struct!(PeakDetectParams, detect_params, unsafe {
 
 get_ptr!(PeakDetectParams, detect_params, pl_peak_detect_params);
 
-create_struct!(
+set_struct!(ColorMapParams, colormap_params, pl_color_map_params);
+
+default_struct!(ColorMapParams, colormap_params, unsafe {
+    pl_color_map_default_params
+});
+
+set_params!(
     ColorMapParams,
     colormap_params,
-    pl_color_map_params,
     (
         intent,
         tone_mapping_algo,
@@ -96,10 +101,6 @@ create_struct!(
         gamut_warning as bool
     )
 );
-
-default_struct!(ColorMapParams, colormap_params, unsafe {
-    pl_color_map_default_params
-});
 
 get_ptr!(ColorMapParams, colormap_params, pl_color_map_params);
 

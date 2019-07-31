@@ -4,7 +4,7 @@ use crate::*;
 use libplacebo_sys::*;
 
 use std::default::Default;
-use std::ffi::c_void;
+use std::ptr::{null, null_mut};
 
 create_enum!(
     FmtType,
@@ -20,9 +20,8 @@ create_enum!(
     )
 );
 
-create_enum!(
+simple_enum!(
     BufType,
-    pl_buf_type,
     (
         BUF_INVALID,
         BUF_TEX_TRANSFER,
@@ -35,23 +34,18 @@ create_enum!(
     )
 );
 
-create_enum!(
+simple_enum!(
     HandleType,
-    pl_handle_type,
-    (HANDLE_FD, HANDLE_WIN32, HANDLE_WIN32_KMT, HANDLE_DMA_BUF,)
+    (HANDLE_FD, HANDLE_WIN32, HANDLE_WIN32_KMT, HANDLE_DMA_BUF)
 );
 
-create_enum!(
-    BufMemType,
-    pl_buf_mem_type,
-    (BUF_MEM_AUTO, BUF_MEM_HOST, BUF_MEM_DEVICE,)
-);
+simple_enum!(BufMemType, (BUF_MEM_AUTO, BUF_MEM_HOST, BUF_MEM_DEVICE));
 
 pub union Handle {
     handle: pl_handle,
 }
 
-default_struct!(Handle, handle, pl_handle, (handle), (0 as *mut c_void));
+default_struct!(Handle, handle, pl_handle, (handle), (null_mut()));
 
 set_struct!(SharedMem, shared_mem, pl_shared_mem);
 
@@ -118,10 +112,10 @@ impl Default for BufParams {
             host_writable: false,
             host_readable: false,
             memory_type: pl_buf_mem_type::PL_BUF_MEM_AUTO,
-            format: 0 as *const pl_fmt,
-            handle_type: handle_type,
-            initial_data: 0 as *const c_void,
-            user_data: 0 as *mut c_void,
+            format: null(),
+            handle_type,
+            initial_data: null(),
+            user_data: null_mut(),
         };
         BufParams { buf_params }
     }
@@ -136,10 +130,7 @@ impl Buf {
     pub fn new(gpu: &Gpu, params: &BufParams) -> Self {
         let buf = unsafe { pl_buf_create(gpu.gpu, &params.buf_params) };
         assert!(!buf.is_null());
-        Buf {
-            buf: buf,
-            gpu: gpu.gpu,
-        }
+        Buf { buf, gpu: gpu.gpu }
     }
 
     pub(crate) fn get_ptr(&self) -> *const pl_buf {
@@ -172,7 +163,7 @@ impl Default for TexParams {
             w: 0,
             h: 0,
             d: 0,
-            format: 0 as *const pl_fmt,
+            format: null(),
             sampleable: false,
             renderable: false,
             storable: false,
@@ -182,11 +173,11 @@ impl Default for TexParams {
             host_readable: false,
             sample_mode: pl_tex_sample_mode::PL_TEX_SAMPLE_NEAREST,
             address_mode: pl_tex_address_mode::PL_TEX_ADDRESS_CLAMP,
-            export_handle: export_handle,
-            import_handle: import_handle,
+            export_handle,
+            import_handle,
             shared_mem: shared_mem.shared_mem,
-            initial_data: 0 as *const c_void,
-            user_data: 0 as *mut c_void,
+            initial_data: null(),
+            user_data: null_mut(),
         };
         TexParams { tex_params }
     }
@@ -200,7 +191,7 @@ pub struct Tex {
 impl Tex {
     pub fn default(gpu: &Gpu) -> Self {
         Tex {
-            tex: 0 as *const pl_tex,
+            tex: null(),
             gpu: gpu.gpu,
         }
     }
@@ -209,10 +200,7 @@ impl Tex {
         let tex = unsafe { pl_tex_create(gpu.gpu, &params.tex_params) };
         assert!(!tex.is_null());
 
-        Tex {
-            tex: tex,
-            gpu: gpu.gpu,
-        }
+        Tex { tex, gpu: gpu.gpu }
     }
 
     /*

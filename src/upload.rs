@@ -5,6 +5,7 @@ use crate::*;
 use libplacebo_sys::*;
 
 use std::ffi::c_void;
+use std::ptr::null;
 
 set_struct!(PlaneData, plane_data, pl_plane_data);
 default_struct!(
@@ -33,8 +34,8 @@ default_struct!(
         [0; 4],
         0,
         0,
-        0 as *const c_void,
-        0 as *const pl_buf,
+        null(),
+        null(),
         0,
     )
 );
@@ -96,7 +97,7 @@ impl PlaneData {
         out_plane: &mut Plane,
         tex: &mut Tex,
     ) {
-        let mut tex_i = 0 as *const pl_tex;
+        let mut tex_i = null();
         let ok = unsafe {
             pl_upload_plane(
                 gpu.get_ptr(),

@@ -6,6 +6,7 @@ use crate::*;
 use libplacebo_sys::*;
 
 use std::default::Default;
+use std::ptr::null;
 
 pub type VkPresentMode = VkPresentModeKHR;
 pub type VkColorSpace = VkColorSpaceKHR;
@@ -57,10 +58,10 @@ create_complete_struct!(
     (fbo, flipped, color_repr, color_space),
     (&Tex, bool, &ColorRepr, &ColorSpace),
     (
-        0 as *const pl_tex,
+        null(),
         false,
-        ColorRepr::to_color_repr(&ColorReprs::Unknown).internal_object(),
-        ColorSpace::to_color_space(&ColorSpaces::Unknown).internal_object(),
+        ColorRepr::color_repr(&ColorReprs::Unknown).internal_object(),
+        ColorSpace::color_space(&ColorSpaces::Unknown).internal_object(),
     ),
     (
         fbo.get_ptr(),

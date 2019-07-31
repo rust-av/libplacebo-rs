@@ -5,18 +5,19 @@ use crate::*;
 use libplacebo_sys::*;
 
 use std::ffi::CString;
+use std::ptr::null_mut;
 
 macro_rules! init_data {
     ($first:ident, $second:ident) => {
         let $first = Data {
             c_str: Vec::new(),
             c_ptr: Vec::new(),
-            c_sli: 0 as *mut *const i8,
+            c_sli: null_mut(),
         };
         let $second = Data {
             c_str: Vec::new(),
             c_ptr: Vec::new(),
-            c_sli: 0 as *mut *const i8,
+            c_sli: null_mut(),
         };
     };
 }
@@ -32,13 +33,13 @@ macro_rules! define_data {
 
 macro_rules! extensions {
     ($param:ident) => {
-        pub fn set_extensions(&mut self, ext: &Vec<&'static str>) {
+        pub fn set_extensions(&mut self, ext: &[&'static str]) {
             define_data!(ext, self.c_ext);
             self.$param.extensions = self.c_ext.c_sli;
             self.$param.num_extensions = ext.len() as i32;
         }
 
-        pub fn set_opt_extensions(&mut self, opt: &Vec<&'static str>) {
+        pub fn set_opt_extensions(&mut self, opt: &[&'static str]) {
             define_data!(opt, self.c_opt);
             self.$param.opt_extensions = self.c_opt.c_sli;
             self.$param.num_opt_extensions = opt.len() as i32;

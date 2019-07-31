@@ -2,6 +2,7 @@ use crate::*;
 use libplacebo_sys::*;
 
 use std::ffi::c_void;
+use std::ptr::null_mut;
 
 create_enum!(
     LogLevel,
@@ -21,7 +22,7 @@ pub struct ContextParams {
 }
 
 impl ContextParams {
-    pub fn new(log_cb: &LogFunction, log_level: &LogLevel) -> Self {
+    pub fn new(log_cb: LogFunction, log_level: LogLevel) -> Self {
         type LogFunc =
             unsafe extern "C" fn(*mut c_void, pl_log_level, *const i8);
         let log_f: Option<LogFunc> = match log_cb {
@@ -31,8 +32,8 @@ impl ContextParams {
         };
         let ctx_params = pl_context_params {
             log_cb: log_f,
-            log_level: LogLevel::to_pl_log_level(log_level),
-            log_priv: 0 as *mut c_void,
+            log_level: LogLevel::to_pl_log_level(&log_level),
+            log_priv: null_mut(),
         };
 
         ContextParams { ctx_params }

@@ -10,6 +10,8 @@ use crate::*;
 
 use libplacebo_sys::*;
 
+use std::ptr::null;
+
 create_enum!(
     OverlayMode,
     pl_overlay_mode,
@@ -18,7 +20,7 @@ create_enum!(
 
 macro_rules! overlays {
     ($id:ident) => {
-        pub fn set_overlays(&mut self, overlays: &Vec<Overlay>) {
+        pub fn set_overlays(&mut self, overlays: &[Overlay]) {
             self.overlays = overlays.iter().map(|v| v.overlay).collect();
             self.$id.overlays = self.overlays.as_ptr();
             self.$id.num_overlays = overlays.len() as i32;
@@ -32,7 +34,7 @@ create_complete_struct!(
     pl_plane,
     (texture, components, component_mapping, shift_x, shift_y),
     (&Tex, usize, [i32; 4], f32, f32),
-    (0 as *const pl_tex, 0, [0; 4], 0.0, 0.0),
+    (null(), 0, [0; 4], 0.0, 0.0),
     (
         texture.get_ptr(),
         components as i32,
@@ -94,15 +96,15 @@ impl Default for Image {
             signature: 0,
             num_planes: 0,
             planes: pl_planes,
-            repr: ColorRepr::to_color_repr(&ColorReprs::Unknown)
+            repr: ColorRepr::color_repr(&ColorReprs::Unknown)
                 .internal_object(),
-            color: ColorSpace::to_color_space(&ColorSpaces::Unknown)
+            color: ColorSpace::color_space(&ColorSpaces::Unknown)
                 .internal_object(),
             profile: icc_profile.internal_object(),
             width: 0,
             height: 0,
             src_rect: rect.internal_object(),
-            overlays: 0 as *const pl_overlay,
+            overlays: null(),
             num_overlays: 0,
         };
 
@@ -171,14 +173,14 @@ impl Default for RenderTarget {
         let icc_profile: IccProfile = Default::default();
         let rect: Rect2D = Default::default();
         let target = pl_render_target {
-            fbo: 0 as *const pl_tex,
+            fbo: null(),
             dst_rect: rect.internal_object(),
-            repr: ColorRepr::to_color_repr(&ColorReprs::Unknown)
+            repr: ColorRepr::color_repr(&ColorReprs::Unknown)
                 .internal_object(),
-            color: ColorSpace::to_color_space(&ColorSpaces::Unknown)
+            color: ColorSpace::color_space(&ColorSpaces::Unknown)
                 .internal_object(),
             profile: icc_profile.internal_object(),
-            overlays: 0 as *const pl_overlay,
+            overlays: null(),
             num_overlays: 0,
         };
 

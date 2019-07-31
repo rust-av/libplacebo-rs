@@ -16,6 +16,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::process;
+use std::ptr::{null, null_mut};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 use structopt::StructOpt;
@@ -26,7 +27,7 @@ const WINDOW_HEIGHT: u32 = 480;
 macro_rules! null_plane_struct {
     ($var:ident) => {
         let $var = pl_plane {
-            texture: 0 as *const pl_tex,
+            texture: null(),
             components: 0,
             component_mapping: [0; 4],
             shift_x: 0.0,
@@ -65,7 +66,7 @@ fn init_placebo(pl: &mut Placebo) {
     let context_params = pl_context_params {
         log_cb: Some(pl_log_color),
         log_level: pl_log_level::PL_LOG_DEBUG,
-        log_priv: 0 as *mut c_void,
+        log_priv: null_mut(),
     };
     let ctx = unsafe { pl_context_create(PL_API_VER as i32, &context_params) };
     assert!(!ctx.is_null());
@@ -177,38 +178,40 @@ fn upload_plane(
         pixel_stride: surf_image.pixel_format_enum().byte_size_per_pixel(),
         row_stride: surf_image.pitch() as usize,
         pixels: surf_image.without_lock().unwrap().as_ptr() as *const c_void,
-        buf: 0 as *const pl_buf,
+        buf: null(),
         buf_offset: 0,
     };
 
     let mask = surf_image.pixel_format_enum().into_masks().unwrap();
     let mut masks: [u64; 4] = [
-        mask.rmask as u64,
-        mask.gmask as u64,
-        mask.bmask as u64,
-        mask.amask as u64,
+        u64::from(mask.rmask),
+        u64::from(mask.gmask),
+        u64::from(mask.bmask),
+        u64::from(mask.amask),
     ];
     unsafe { pl_plane_data_from_mask(&mut plane_data, masks.as_mut_ptr()) }
 
     let vk_gpu = unsafe { (*pl.vk).gpu };
-    let ok = match is_image {
-        true => unsafe {
+    let mut ok = is_image;
+    if ok {
+        ok = unsafe {
             pl_upload_plane(
                 vk_gpu,
                 &mut pl.img_plane,
                 &mut pl.img_tex,
                 &plane_data,
             )
-        },
-        false => unsafe {
+        }
+    } else {
+        ok = unsafe {
             pl_upload_plane(
                 vk_gpu,
                 &mut pl.osd_plane,
                 &mut pl.osd_tex,
                 &plane_data,
             )
-        },
-    };
+        }
+    }
 
     if !ok {
         eprintln!("Failed uploading plane!");
@@ -243,7 +246,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
     let w = unsafe { (*img).params.w };
     let h = unsafe { (*img).params.h };
     let icc_profile = pl_icc_profile {
-        data: 0 as *const c_void,
+        data: null(),
         len: 0,
         signature: 0,
     };
@@ -263,7 +266,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
             x1: 0.0,
             y1: 0.0,
         },
-        overlays: 0 as *const pl_overlay,
+        overlays: null(),
         num_overlays: 0,
     };
 
@@ -273,7 +276,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
     render_params.upscaler = unsafe { &pl_filter_ewa_lanczos };
 
     let mut target = pl_render_target {
-        fbo: 0 as *const pl_tex,
+        fbo: null(),
         dst_rect: pl_rect2d {
             x0: 0,
             y0: 0,
@@ -283,7 +286,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
         repr: unsafe { pl_color_repr_unknown },
         color: unsafe { pl_color_space_unknown },
         profile: icc_profile,
-        overlays: 0 as *const pl_overlay,
+        overlays: null(),
         num_overlays: 0,
     };
 
@@ -291,7 +294,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
         pl_render_target_from_swapchain(&mut target, frame);
     }
 
-    if pl.icc_profile.len() != 0 {
+    if !pl.icc_profile.is_empty() {
         let icc_profile = pl_icc_profile {
             data: pl.icc_profile.as_ptr() as *const c_void,
             len: pl.icc_profile.len(),
@@ -351,15 +354,15 @@ fn main() {
     null_plane_struct!(osd_plane);
 
     let mut pl = Placebo {
-        ctx: 0 as *mut pl_context,
-        vk: 0 as *const pl_vulkan,
-        vk_inst: 0 as *const pl_vk_inst,
-        swapchain: 0 as *const pl_swapchain,
-        img_tex: 0 as *const pl_tex,
-        osd_tex: 0 as *const pl_tex,
-        renderer: 0 as *mut pl_renderer,
-        img_plane: img_plane,
-        osd_plane: osd_plane,
+        ctx: null_mut(),
+        vk: null(),
+        vk_inst: null(),
+        swapchain: null(),
+        img_tex: null(),
+        osd_tex: null(),
+        renderer: null_mut(),
+        img_plane,
+        osd_plane,
         icc_profile: Vec::new(),
     };
 
@@ -405,10 +408,10 @@ fn main() {
         let color_space = unsafe { pl_color_space_unknown };
 
         let mut frame = pl_swapchain_frame {
-            fbo: 0 as *const pl_tex,
+            fbo: null(),
             flipped: false,
-            color_repr: color_repr,
-            color_space: color_space,
+            color_repr,
+            color_space,
         };
 
         let ok = unsafe { pl_swapchain_start_frame(pl.swapchain, &mut frame) };
@@ -434,7 +437,7 @@ fn main() {
                 "{} frames in {} ms = {} FPS",
                 frames,
                 millis,
-                1000.0 * frames as f64 / millis as f64
+                1000.0 * f64::from(frames) / millis as f64
             );
             last = now;
             frames = 0;
