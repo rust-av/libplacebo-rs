@@ -3,7 +3,7 @@ use crate::*;
 
 use libplacebo_sys::*;
 
-//use std::ffi::c_void;
+use std::ptr::null;
 
 pub enum FilterFunctions {
     Box,
@@ -28,9 +28,10 @@ pub enum FilterFunctions {
 }
 
 impl FilterFunctions {
+    #[allow(dead_code)]
     pub(crate) fn to_filter_function(&self) -> pl_filter_function {
         unsafe {
-            let filter_func = match self {
+            match self {
                 FilterFunctions::Box => pl_filter_function_box,
                 FilterFunctions::Triangle => pl_filter_function_triangle,
                 FilterFunctions::Hann => pl_filter_function_hann,
@@ -52,8 +53,7 @@ impl FilterFunctions {
                 FilterFunctions::Bicubic => pl_filter_function_bicubic,
                 FilterFunctions::Spline36 => pl_filter_function_spline36,
                 FilterFunctions::Spline64 => pl_filter_function_spline64,
-            };
-            filter_func
+            }
         }
     }
 }
@@ -76,16 +76,16 @@ impl Default for FilterFunction {
 impl FilterFunction {
     pub fn new(
         resizable: bool,
-        tunable: &[bool; 2],
+        tunable: [bool; 2],
         radius: f32,
-        params: &[f32; 2],
+        params: [f32; 2],
     ) -> Self {
         let filter_func = pl_filter_function {
-            resizable: resizable,
-            tunable: *tunable,
+            resizable,
+            tunable,
             weight: None,
-            radius: radius,
-            params: *params,
+            radius,
+            params,
         };
 
         FilterFunction { filter_func }
@@ -160,14 +160,7 @@ create_complete_struct!(
     pl_filter_config,
     (kernel, window, clamp, blur, taper, polar),
     (&FilterFunction, &FilterFunction, f32, f32, f32, bool),
-    (
-        0 as *const pl_filter_function,
-        0 as *const pl_filter_function,
-        0.0,
-        0.0,
-        0.0,
-        false,
-    ),
+    (null(), null(), 0.0, 0.0, 0.0, false,),
     (
         &kernel.filter_func,
         &window.filter_func,

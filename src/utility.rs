@@ -1,23 +1,30 @@
 extern crate paste;
 
 #[macro_export]
-macro_rules! create_enum {
-    ($enum:ident, $type:ident,
-    ($($field_name:ident),*$(,)*)) => {
+macro_rules! simple_enum {
+    ($enum:ident, ($($field_name:ident),*$(,)*)) => {
         #[derive(Clone, Copy, Debug)]
         pub enum $enum {
             $($field_name,)*
         }
+    }
+}
+
+#[macro_export]
+macro_rules! create_enum {
+    ($enum:ident, $type:ident,
+    ($($field_name:ident),*$(,)*)) => {
+
+        simple_enum!($enum, ($($field_name),*));
 
         impl $enum {
             paste::item! {
                 pub(crate) fn [<to_ $type>](&self) -> $type {
-                    let pass = match self {
+                    match self {
                         $(
                             $enum::$field_name => $type::[<PL_ $field_name>],
                         )*
-                    };
-                pass
+                    }
                 }
             }
         }

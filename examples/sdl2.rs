@@ -45,9 +45,8 @@ struct CliArgs {
 
 fn init_placebo() -> Context {
     let context_params =
-        ContextParams::new(&LogFunction::LogColor, &LogLevel::LOG_DEBUG);
-    let ctx = Context::new(&context_params);
-    ctx
+        ContextParams::new(LogFunction::LogColor, LogLevel::LOG_DEBUG);
+    Context::new(&context_params)
 }
 
 fn init_vulkan(
@@ -136,10 +135,10 @@ fn upload_plane(
 
     let mask = surf_image.pixel_format_enum().into_masks().unwrap();
     let mut masks: [u64; 4] = [
-        mask.rmask as u64,
-        mask.gmask as u64,
-        mask.bmask as u64,
-        mask.amask as u64,
+        u64::from(mask.rmask),
+        u64::from(mask.gmask),
+        u64::from(mask.bmask),
+        u64::from(mask.amask),
     ];
 
     plane_data.data_from_mask(&mut masks);
@@ -176,7 +175,7 @@ fn create_target(
     let mut target: RenderTarget = Default::default();
     target.render_target_from_swapchain(frame);
 
-    if icc_profile.len() != 0 {
+    if !icc_profile.is_empty() {
         let mut profile: IccProfile = Default::default();
         profile.set_data(&icc_profile);
         target.set_profile(&profile);
@@ -250,7 +249,7 @@ fn main() -> std::io::Result<()> {
         f.read_to_end(&mut icc_profile)?;
     }
 
-    let renderer = Renderer::new(&mut ctx, &vk.gpu());
+    let renderer = Renderer::new(&ctx, &vk.gpu());
 
     // Resize the window to match the content
     let w = img_plane.width();
@@ -284,7 +283,7 @@ fn main() -> std::io::Result<()> {
         }
 
         let image = create_image(&img_plane);
-        let mut target = create_target(&mut frame, &mut icc_profile);
+        let mut target = create_target(&frame, &mut icc_profile);
 
         if osd {
             set_osd(&image, &mut target, &osd_plane);
@@ -303,7 +302,7 @@ fn main() -> std::io::Result<()> {
                 "{} frames in {} ms = {} FPS",
                 frames,
                 millis,
-                1000.0 * frames as f64 / millis as f64
+                1000.0 * f64::from(frames) / millis as f64
             );
             last = now;
             frames = 0;

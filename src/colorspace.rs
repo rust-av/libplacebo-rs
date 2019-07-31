@@ -3,11 +3,12 @@ use crate::*;
 use libplacebo_sys::*;
 
 use std::ffi::c_void;
+use std::ptr::null;
 
 create_enum!(
     AlphaMode,
     pl_alpha_mode,
-    (ALPHA_UNKNOWN, ALPHA_INDEPENDENT, ALPHA_PREMULTIPLIED,)
+    (ALPHA_UNKNOWN, ALPHA_INDEPENDENT, ALPHA_PREMULTIPLIED)
 );
 
 create_enum!(
@@ -160,7 +161,7 @@ impl Default for ColorRepr {
 }
 
 impl ColorRepr {
-    pub fn to_color_repr(repr: &ColorReprs) -> Self {
+    pub fn color_repr(repr: &ColorReprs) -> Self {
         unsafe {
             let color_repr = match repr {
                 ColorReprs::Unknown => pl_color_repr_unknown,
@@ -215,7 +216,7 @@ create_complete_struct!(
 );
 
 impl ColorSpace {
-    pub fn to_color_space(color: &ColorSpaces) -> Self {
+    pub fn color_space(color: &ColorSpaces) -> Self {
         unsafe {
             let color_space = match color {
                 ColorSpaces::Unknown => pl_color_space_unknown,
@@ -252,7 +253,7 @@ pub enum Vision {
 impl Vision {
     pub fn to_cone_params(&self) -> pl_cone_params {
         unsafe {
-            let vision_f = match self {
+            match self {
                 Vision::Normal => pl_vision_normal,
                 Vision::Protanomaly => pl_vision_protanomaly,
                 Vision::Protanopia => pl_vision_protanopia,
@@ -262,8 +263,7 @@ impl Vision {
                 Vision::Tritanopia => pl_vision_tritanopia,
                 Vision::Monochromacy => pl_vision_monochromacy,
                 Vision::Achromatopsia => pl_vision_achromatopsia,
-            };
-            vision_f
+            }
         }
     }
 }
@@ -298,7 +298,7 @@ impl Default for IccProfile {
     fn default() -> Self {
         let icc_profile = pl_icc_profile {
             signature: 0 as u64,
-            data: 0 as *const c_void,
+            data: null(),
             len: 0 as usize,
         };
 
@@ -310,8 +310,8 @@ impl Default for IccProfile {
 }
 
 impl IccProfile {
-    pub fn new(signature: usize, data: &Vec<u8>) -> Self {
-        let data_i = data.clone();
+    pub fn new(signature: usize, data: &[u8]) -> Self {
+        let data_i = data.to_owned();
         let icc_profile = pl_icc_profile {
             signature: signature as u64,
             data: data_i.as_ptr() as *const c_void,
@@ -324,8 +324,8 @@ impl IccProfile {
         }
     }
 
-    pub fn set_data(&mut self, data: &Vec<u8>) {
-        self.data = data.clone();
+    pub fn set_data(&mut self, data: &[u8]) {
+        self.data = data.to_owned();
         self.icc_profile.data = self.data.as_ptr() as *const c_void;
         self.icc_profile.len = data.len();
     }
