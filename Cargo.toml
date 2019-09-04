@@ -9,7 +9,7 @@ libplacebo-sys = { path="libplacebo-sys" }
 paste = "0.1"
 
 [dev-dependencies]
-structopt = "0.2"
+structopt = "0.3"
 
 [dev-dependencies.sdl2]
 version = "0.32.2"
