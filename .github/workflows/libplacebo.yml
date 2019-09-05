@@ -1,0 +1,78 @@
+name: libplacebo
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Vulkan
+      env:
+        VULKAN_PKG: libvulkan-dev
+      run: |
+        sudo apt-get install $VULKAN_PKG
+    - name: Install Vulkan packages
+      env:
+        VULKAN_PKG: mesa-vulkan-drivers vulkan-utils
+      run: |
+        sudo apt-get install $VULKAN_PKG
+    - name: Install Python3 packages
+      env:
+        PYTHON3_PKG: python3-setuptools python3-wheel
+      run: |
+        sudo apt-get install $PYTHON3_PKG
+    - name: Install meson and ninja
+      run: |
+        sudo pip3 install meson ninja
+    - name: Install sdl2
+      run: |
+        sudo apt-get update
+        sudo apt-get install libsdl2-dev libsdl2-image-dev
+    - name: Install shaderc
+      env:
+        GLSLANG_REPO: https://github.com/KhronosGroup/glslang.git
+        SPIRV_TOOLS_REPO: https://github.com/KhronosGroup/SPIRV-Tools.git
+        SPIRV_HEADERS_REPO: https://github.com/KhronosGroup/SPIRV-Headers.git
+      run: |
+        git clone --depth 1 https://github.com/google/shaderc
+        cd shaderc
+        git clone --depth 1 $GLSLANG_REPO third_party/glslang
+        git clone --depth 1 $SPIRV_TOOLS_REPO third_party/spirv-tools
+        git clone --depth 1 $SPIRV_HEADERS_REPO third_party/spirv-headers
+        mkdir build
+        cd build
+        cmake -GNinja \
+              -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+              -DCMAKE_INSTALL_PREFIX=$HOME/shaderc_dir \
+              -DSHADERC_SKIP_TESTS=1 \
+              ..
+        ninja
+        mkdir $HOME/shaderc_dir
+        cp -a libshaderc*/libshaderc*.a $HOME/shaderc_dir
+        cp -a libshaderc*/libshaderc*.so* $HOME/shaderc_dir
+        cp -a ../libshaderc*/include $HOME/shaderc_dir
+    - name: Install libplacebo
+      run: |
+        git clone --depth 1 https://code.videolan.org/videolan/libplacebo.git
+        cd libplacebo
+        CFLAGS=-I$HOME/shaderc_dir/include LDFLAGS=-Wl,-L$HOME/shaderc_dir \
+        meson build -Dprefix=$HOME/placebo_dir --buildtype release
+        ninja -C build
+        cd build
+        ninja install
+    - name: Run tests
+      env:
+        PKG_PATH: placebo_dir/lib/x86_64-linux-gnu/pkgconfig
+      run: |
+        export PKG_CONFIG_PATH=$HOME/$PKG_PATH:$PKG_CONFIG_PATH
+        export LD_LIBRARY_PATH=$HOME/shaderc_dir:$LD_LIBRARY_PATH
+        cargo test --all-features
