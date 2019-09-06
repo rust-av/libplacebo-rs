@@ -65,8 +65,7 @@ jobs:
         CFLAGS=-I$HOME/$PLACEBO_DIR LDFLAGS=-Wl,-L$HOME/$PLACEBO_DIR \
         meson build -Dprefix=$HOME/$PLACEBO_DIR --buildtype release
         ninja -C build
-        cd build
-        ninja install
+        ninja -C build install
     - name: Run tests
       env:
         PLACEBO_DIR: placebo_dir
