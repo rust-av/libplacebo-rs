@@ -25,7 +25,9 @@ fn main() {
         builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
     }
 
-    builder = builder.default_enum_style(bindgen::EnumVariation::Rust);
+    builder = builder.default_enum_style(bindgen::EnumVariation::Rust {
+        non_exhaustive: false,
+    });
 
     // Manually fix the comment so rustdoc won't try to pick them
     let s = format_write(builder);
