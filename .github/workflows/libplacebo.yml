@@ -5,6 +5,9 @@ on: [push, pull_request]
 jobs:
   build:
 
+    env:
+      PLACEBO_DIR: placebo-dir
+
     runs-on: ubuntu-latest
 
     steps:
@@ -26,9 +29,15 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libsdl2-dev libsdl2-image-dev
-    - name: Install shaderc
+    - name: Cache shaderc
+      uses: actions/cache@preview
+      id: cache
+      with:
+        path: shaderc
+        key: ${{ runner.os }}-${{ hashFiles('**/libplacebo-sys/build.rs')}}
+    - name: Build shaderc
+      if: steps.cache.outputs.cache-hit != 'true'
       env:
-        PLACEBO_DIR: placebo_dir
         GLSLANG_REPO: https://github.com/KhronosGroup/glslang.git
         SPIRV_TOOLS_REPO: https://github.com/KhronosGroup/SPIRV-Tools.git
         SPIRV_HEADERS_REPO: https://github.com/KhronosGroup/SPIRV-Headers.git
@@ -38,7 +47,7 @@ jobs:
         git clone --depth 1 $GLSLANG_REPO third_party/glslang
         git clone --depth 1 $SPIRV_TOOLS_REPO third_party/spirv-tools
         git clone --depth 1 $SPIRV_HEADERS_REPO third_party/spirv-headers
-        mkdir -p build $HOME/$PLACEBO_DIR
+        mkdir -p build
         cd build
         cmake -GNinja \
               -DCMAKE_BUILD_TYPE=Release \
@@ -47,12 +56,14 @@ jobs:
               -DSHADERC_SKIP_TESTS=1 \
               ..
         ninja
+    - name: Copy shaderc libraries
+      run: |
+        cd shaderc/build
+        mkdir -p $HOME/$PLACEBO_DIR
         cp -a libshaderc*/libshaderc*.a $HOME/$PLACEBO_DIR
         cp -a libshaderc*/libshaderc*.so* $HOME/$PLACEBO_DIR
         cp -a ../libshaderc*/include/shaderc $HOME/$PLACEBO_DIR
     - name: Install libplacebo
-      env:
-        PLACEBO_DIR: placebo_dir
       run: |
         git clone --depth 1 https://code.videolan.org/videolan/libplacebo.git
         cd libplacebo
@@ -62,7 +73,6 @@ jobs:
         ninja -C build install
     - name: Run tests
       env:
-        PLACEBO_DIR: placebo_dir
         PKG_PATH: lib/x86_64-linux-gnu/pkgconfig
       run: |
         export PKG_CONFIG_PATH=$HOME/$PLACEBO_DIR/$PKG_PATH:$PKG_CONFIG_PATH
