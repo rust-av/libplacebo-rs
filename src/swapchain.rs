@@ -28,13 +28,20 @@ create_complete_struct!(
     SwapchainParams,
     sw_params,
     pl_vulkan_swapchain_params,
-    (surface, present_mode, surface_format, swapchain_depth),
-    (u64, &VkPresentMode, &SurfaceFormat, usize),
+    (
+        surface,
+        present_mode,
+        surface_format,
+        swapchain_depth,
+        allow_suboptimal
+    ),
+    (u64, &VkPresentMode, &SurfaceFormat, usize, bool),
     (
         surface as VkSurfaceKHR,
         *present_mode as VkPresentMode,
         surface_format.surface_format,
         swapchain_depth as i32,
+        allow_suboptimal as bool
     )
 );
 
@@ -46,6 +53,7 @@ impl Default for SwapchainParams {
             present_mode: VkPresentModeKHR::VK_PRESENT_MODE_IMMEDIATE_KHR,
             surface_format: surf_default.surface_format,
             swapchain_depth: 3,
+            allow_suboptimal: false,
         };
         SwapchainParams { sw_params }
     }

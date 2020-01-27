@@ -12,57 +12,43 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install Vulkan
-      env:
-        VULKAN_PKG: libvulkan-dev mesa-vulkan-drivers vulkan-utils
+
+    - name: Install Vulkan SDK
       run: |
-        sudo apt-get install $VULKAN_PKG
+        LUNAR_DEST_DIR=/etc/apt/sources.list.d/lunarg-vulkan-bionic.list
+        LUNAR_LINK=http://packages.lunarg.com/vulkan/lunarg-vulkan-bionic.list
+        wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc |
+        sudo apt-key add -
+        sudo wget -qO $LUNAR_DEST_DIR $LUNAR_LINK
+        sudo apt update
+        sudo apt install vulkan-sdk
+
     - name: Install Python3 packages
       env:
         PYTHON3_PKG: python3-setuptools python3-wheel
       run: |
         sudo apt-get install $PYTHON3_PKG
+
     - name: Install meson and ninja
       run: |
         sudo pip3 install meson ninja
+
     - name: Install sdl2
       run: |
         sudo apt-get update
         sudo apt-get install libsdl2-dev libsdl2-image-dev
-    - name: Cache shaderc
-      uses: actions/cache@preview
-      id: cache
-      with:
-        path: shaderc
-        key: ${{ runner.os }}-${{ hashFiles('**/libplacebo-sys/build.rs')}}
-    - name: Build shaderc
-      if: steps.cache.outputs.cache-hit != 'true'
-      env:
-        GLSLANG_REPO: https://github.com/KhronosGroup/glslang.git
-        SPIRV_TOOLS_REPO: https://github.com/KhronosGroup/SPIRV-Tools.git
-        SPIRV_HEADERS_REPO: https://github.com/KhronosGroup/SPIRV-Headers.git
+
+    - name: Install shaderc libraries
       run: |
-        git clone --depth 1 https://github.com/google/shaderc
-        cd shaderc
-        git clone --depth 1 $GLSLANG_REPO third_party/glslang
-        git clone --depth 1 $SPIRV_TOOLS_REPO third_party/spirv-tools
-        git clone --depth 1 $SPIRV_HEADERS_REPO third_party/spirv-headers
-        mkdir -p build
-        cd build
-        cmake -GNinja \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DBUILD_SHARED_LIBS=1 \
-              -DBUILD_TESTING=0 \
-              -DSHADERC_SKIP_TESTS=1 \
-              ..
-        ninja
-    - name: Copy shaderc libraries
-      run: |
-        cd shaderc/build
+        LINK1=https://storage.googleapis.com/shaderc/artifacts/prod
+        LINK2=graphics_shader_compiler/shaderc/linux/continuous_clang_release
+        curl -LO $LINK1/$LINK2/255/20200124-124207/install.tgz
+        tar -xvzf install.tgz
         mkdir -p $HOME/$PLACEBO_DIR
-        cp -a libshaderc*/libshaderc*.a $HOME/$PLACEBO_DIR
-        cp -a libshaderc*/libshaderc*.so* $HOME/$PLACEBO_DIR
-        cp -a ../libshaderc*/include/shaderc $HOME/$PLACEBO_DIR
+        cp -a install/lib/libshaderc*.a $HOME/$PLACEBO_DIR
+        cp -a install/lib/libshaderc*.so* $HOME/$PLACEBO_DIR
+        cp -a install/include/shaderc $HOME/$PLACEBO_DIR
+
     - name: Install libplacebo
       run: |
         git clone --depth 1 https://code.videolan.org/videolan/libplacebo.git
@@ -71,6 +57,7 @@ jobs:
         meson build -Dprefix=$HOME/$PLACEBO_DIR --buildtype release
         ninja -C build
         ninja -C build install
+
     - name: Run tests
       env:
         PKG_PATH: lib/x86_64-linux-gnu/pkgconfig
