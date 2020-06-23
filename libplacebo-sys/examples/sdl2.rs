@@ -119,8 +119,7 @@ fn init_vulkan(window: &mut Window, pl: &mut Placebo) {
         swapchain_depth: 3,
     };
 
-    let swapchain =
-        unsafe { pl_vulkan_create_swapchain(pl.vk, &swapchain_params) };
+    let swapchain = unsafe { pl_vulkan_create_swapchain(pl.vk, &swapchain_params) };
     assert!(!swapchain.is_null());
 
     pl.swapchain = swapchain;
@@ -139,11 +138,7 @@ fn init_vulkan(window: &mut Window, pl: &mut Placebo) {
     }
 }
 
-fn upload_plane(
-    path: &PathBuf,
-    pl: &mut Placebo,
-    is_image: bool,
-) -> std::io::Result<()> {
+fn upload_plane(path: &PathBuf, pl: &mut Placebo, is_image: bool) -> std::io::Result<()> {
     let mut f = File::open(path)?;
     let mut buf = Vec::new();
     f.read_to_end(&mut buf)?;
@@ -194,23 +189,9 @@ fn upload_plane(
     let vk_gpu = unsafe { (*pl.vk).gpu };
     let mut ok = is_image;
     if ok {
-        ok = unsafe {
-            pl_upload_plane(
-                vk_gpu,
-                &mut pl.img_plane,
-                &mut pl.img_tex,
-                &plane_data,
-            )
-        }
+        ok = unsafe { pl_upload_plane(vk_gpu, &mut pl.img_plane, &mut pl.img_tex, &plane_data) }
     } else {
-        ok = unsafe {
-            pl_upload_plane(
-                vk_gpu,
-                &mut pl.osd_plane,
-                &mut pl.osd_tex,
-                &plane_data,
-            )
-        }
+        ok = unsafe { pl_upload_plane(vk_gpu, &mut pl.osd_plane, &mut pl.osd_tex, &plane_data) }
     }
 
     if !ok {
@@ -324,9 +305,7 @@ fn render_frame(pl: &mut Placebo, frame: &mut pl_swapchain_frame) {
         target.num_overlays = 1;
     }
 
-    let ok = unsafe {
-        pl_render_image(pl.renderer, &image, &target, &render_params)
-    };
+    let ok = unsafe { pl_render_image(pl.renderer, &image, &target, &render_params) };
     if !ok {
         eprintln!("Failed rendering frame!");
         process::exit(2);
