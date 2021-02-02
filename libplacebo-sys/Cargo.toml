@@ -8,7 +8,7 @@ edition = "2018"
 license = "MIT"
 
 [build-dependencies]
-bindgen = "0.52"
+bindgen = "0.57"
 system-deps = "1.3"
 
 [dev-dependencies]
