@@ -1,0 +1,20 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: sdl2
+    versions:
+    - 0.34.3
+    - 0.34.4
+  - dependency-name: system-deps
+    versions:
+    - 2.0.0
+    - 3.0.0
+  - dependency-name: bindgen
+    versions:
+    - 0.56.0
+    - 0.57.0
